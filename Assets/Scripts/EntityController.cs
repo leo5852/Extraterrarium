@@ -20,6 +20,9 @@ public class EntityController : MonoBehaviour
 
     [SerializeField]
     private IState currentState;
+
+    public Transform currentFoodTarget;
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -43,7 +46,7 @@ public class EntityController : MonoBehaviour
         currentState.Enter(this);   
     }
 
-    //==== Action Logics ====
+    //===== Action Logics =====
     private void DecreaseStats()
     {
         hunger -= hungerDecreaseRate * Time.deltaTime;
@@ -64,10 +67,37 @@ public class EntityController : MonoBehaviour
     public void PlayAnimation(string triggerName) { animator.SetTrigger(triggerName); }
     public void StopAnimation(string boolName) { animator.SetBool(boolName, false); }
 
-    public void LookForFood()
+    public bool FindFood()
     {
-        Collider[] result = Physics.OverlapSphere(transform.position, 10f, LayerMask.GetMask("Food"));
-        
+        Collider[] result = Physics.OverlapSphere(transform.position, 20f, LayerMask.GetMask("Food"));
+        if(result.Length > 0)
+        { 
+            currentFoodTarget = result[0].transform;
+            return true;
+        }
+        return false;
+    }
+
+    public void MoveToFoodTarget()
+    {
+        if(currentFoodTarget != null)
+        {
+            MoveTo(currentFoodTarget.position);
+        }
+    }
+
+    public bool IsArrivedAtTarget()
+    {
+        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public void EatFoodTarget()
+    {
+
     }
 }
 

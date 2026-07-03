@@ -26,13 +26,27 @@ public class IdleState : IState
 
 public class HungerState : IState
 {
+    private bool isEating = false;
     public void Enter(EntityController entity)
     {
         Debug.Log("Enter: Hunger State");
+        
+        if (entity.FindFood())
+        {
+            entity.MoveToFoodTarget();
+        }
+        else { }
     }
     public void Execute(EntityController entity)
     {
-        entity.LookForFood();
+        if (entity.IsArrivedAtTarget())
+        {
+            isEating = true;
+            // alien.StopAnimation("IsMoving");
+            // alien.PlayAnimation("EatTrigger");
+
+
+        }
     }
     public void Exit(EntityController entity)
     {
