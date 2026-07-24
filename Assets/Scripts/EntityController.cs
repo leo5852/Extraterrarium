@@ -37,15 +37,17 @@ public class EntityController : MonoBehaviour
         //audioSource = GetComponent<AudioSource>();
 
         ChangeState(new IdleState());
-    }
 
-    private void OnEnable()
-    {
         if (TickManager.Instance != null)
         {
             TickManager.Instance.OnTick += ApplyTick;
         }
+        else
+        {
+            Debug.LogError("Can't find TickManager! Tick not working...");
+        }
     }
+
     private void OnDisable()
     {
         // 파괴/비활성화될 때 반드시 구독 취소
