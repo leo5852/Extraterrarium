@@ -16,7 +16,7 @@ public class IdleState : IState
         Debug.Log("Enter: Idle State");
         wanderRadius = entity.wanderRadius;
         isWandering = false;
-        // entity.PlayAnimation("Idle");
+        entity.PlayAnimation("Idle");
     }
     // 프레임 단위: 도착했는지만 가볍게 확인
     public void ExecuteFrame(EntityController entity)
@@ -26,7 +26,7 @@ public class IdleState : IState
             if (entity.IsArrivedAtTarget())
             {
                 isWandering = false;
-                // entity.PlayAnimation("Idle"); // 다시 대기 애니메이션
+                entity.PlayAnimation("Idle"); // 다시 대기 애니메이션
             }
         }
     }
@@ -56,7 +56,7 @@ public class IdleState : IState
                 entity.MoveTo(randomDest);
 
                 isWandering = true;
-                // entity.PlayAnimation("Walk"); // 걷기 애니메이션 재생
+                entity.PlayAnimation("Walk"); // 걷기 애니메이션 재생
             }
 
         }

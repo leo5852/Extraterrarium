@@ -33,7 +33,7 @@ public class EntityController : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        //animator = GetComponent<Animator>();
+        animator = GetComponent<Animator>();
         //audioSource = GetComponent<AudioSource>();
 
         ChangeState(new IdleState());
@@ -91,7 +91,7 @@ public class EntityController : MonoBehaviour
     public void MoveTo(Vector3 destination)
     {
         agent.SetDestination(destination);
-        //animator.SetBool("IsMoving", true);
+        animator.SetBool("IsMoving", true);
     }
 
     public void RestoreEnergy(float amount) { energy += amount; }
