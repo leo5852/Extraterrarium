@@ -27,7 +27,6 @@ public class EntityController : MonoBehaviour
     public Animator animator;
     public AudioSource audioSource;
 
-    [SerializeField]
     private IState currentState;
 
     void Start()

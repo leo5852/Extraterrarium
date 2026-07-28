@@ -1,6 +1,7 @@
 using System.Xml;
 using UnityEngine;
 using UnityEngine.InputSystem.EnhancedTouch;
+using static UnityEngine.EventSystems.EventTrigger;
 
 
 public class IdleState : IState
@@ -76,78 +77,130 @@ public class HungerState : IState
 {
     private IConsumable targetFood;
     private float eatSpeed;
+    private bool isWandering = false;
+
     public void Enter(EntityController entity)
     {
         Debug.Log("Enter: Hunger State");
         eatSpeed = entity.eatSpeed;
+
+        // [수정됨] 진입할 때 모든 상태를 깨끗하게 초기화
         entity.isEating = false;
+        isWandering = false;
+        targetFood = null;
+
+        SearchOrWander(entity);
+    }
+
+    private void SearchOrWander(EntityController entity)
+    {
+        // [핵심 해결] 먹이를 찾기 전에 먹는 행위를 무조건 강제 종료!
+        entity.isEating = false;
+
         targetFood = entity.LookForFood();
 
-        if (targetFood != null)
+        // 찾은 먹이가 존재하고, 파괴되지 않은(안전한) 상태인지 이중 체크
+        if (targetFood != null && ((Component)targetFood) != null)
         {
-            Debug.Log("Food found!");
+            isWandering = false;
             Vector3 foodPosition = ((Component)targetFood).transform.position;
             entity.MoveTo(foodPosition);
+            entity.PlayAnimation("Walk");
         }
         else
         {
-            // return to idle if no food found
-            Debug.Log("Can't find food...");
-            entity.ChangeState(new IdleState());
+            isWandering = true;
+            Vector3 randomDest = entity.GetRandomNavMeshPoint(entity.wanderRadius);
+            entity.MoveTo(randomDest);
+            entity.PlayAnimation("Walk");
         }
     }
+
     public void ExecuteFrame(EntityController entity)
     {
-        if (targetFood == null || ((Component)targetFood) == null)
+        // 1. 타겟 먹이가 존재하고, 아직 유니티 씬에서 파괴되지 않았을 때만!
+        if (targetFood != null && ((Component)targetFood) != null)
         {
-            Debug.Log("Lost target...Searching again.");
-            entity.ChangeState(new HungerState()); // Hunger State 재시작
-            return;
-        }
-
-        if (!entity.isEating)
-        {
-            //Still Chasing food
-            if (entity.IsArrivedAtTarget())
+            if (!entity.isEating)
             {
-                entity.isEating = true;
-                Debug.Log("Caputured Food! Eating...");
-                // 먹는 애니메이션 재생
+                // 먹이를 향해 걸어가는 중
+                if (entity.IsArrivedAtTarget())
+                {
+                    entity.isEating = true;
+                    entity.PlayAnimation("Idle");
+                }
+            }
+            else
+            {
+                // 밥을 먹는 중
+                float requestAmount = eatSpeed * Time.deltaTime;
+                float actuallyEaten = targetFood.ConsumeNutrition(requestAmount);
+                entity.RestoreHunger(actuallyEaten);
+
+                // [핵심 해결] 밥을 다 먹어치웠을 때 (요청량보다 적게 먹어짐)
+                if (actuallyEaten < requestAmount)
+                {
+                    targetFood = null; // 파괴된 오브젝트의 좀비 참조를 완벽히 끊어버림!
+                    entity.isEating = false; // 식사 끝!
+                    SearchOrWander(entity); // 다시 배회 시작
+                }
             }
         }
+        // 2. 타겟 먹이가 아예 없거나, 먹으러 가는 도중에 누가 먹이를 치워버렸을 때 (Wander 중)
         else
         {
-            float requestAmount = eatSpeed * Time.deltaTime;
-            float actuallyEaten = targetFood.ConsumeNutrition(requestAmount);
-            entity.RestoreHunger(actuallyEaten);
+            // 혹시라도 남아있을 식사 상태를 강제로 꺼줌
+            entity.isEating = false;
 
-            if (actuallyEaten < requestAmount)
+            if (isWandering && entity.IsArrivedAtTarget())
             {
-                entity.ChangeState(new HungerState());
+                isWandering = false;
+                entity.PlayAnimation("Idle"); // 목적지에 도착하면 멈춰서 두리번거리기
             }
         }
     }
+
     public void ExecuteTick(EntityController entity)
     {
-        // 틱이 돌았는데 쫓던 먹이가 사라졌다면?
-        if (targetFood == null || ((Component)targetFood) == null)
-        {
-            entity.ChangeState(new HungerState());
-            return;
-        }
-
-        // 틱이 돌았을 때 배가 다 찼다면? (틱 단위로 체크해도 충분함)
+        // 배가 가득 차면 비로소 Hunger 상태를 탈출
         if (entity.hunger >= 100f)
         {
             entity.ChangeState(new IdleState());
+            return;
+        }
+
+        // 먹이가 없거나, 향하던 먹이가 파괴된 상태라면 틱마다 레이더 가동
+        if (targetFood == null || ((Component)targetFood) == null)
+        {
+            targetFood = entity.LookForFood();
+
+            if (targetFood != null && ((Component)targetFood) != null)
+            {
+                isWandering = false;
+                entity.isEating = false;
+
+                Vector3 foodPosition = ((Component)targetFood).transform.position;
+                entity.MoveTo(foodPosition);
+                entity.PlayAnimation("Walk");
+            }
+            else if (!isWandering)
+            {
+                // 제자리에 서 있다면 50% 확률로 새로운 곳을 향해 배회 시작
+                if (Random.value > 0.5f)
+                {
+                    SearchOrWander(entity);
+                }
+            }
         }
     }
+
     public void Exit(EntityController entity)
     {
         entity.isEating = false;
         Debug.Log("Exit: Hunger State");
     }
 }
+
 public class SleepState : IState
 {
     private float sleepRestoreSpeed = 15f;

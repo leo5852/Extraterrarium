@@ -1,5 +1,4 @@
-using UnityEditor;
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class SimpleFood : MonoBehaviour, IConsumable
 {
@@ -19,12 +18,12 @@ public class SimpleFood : MonoBehaviour, IConsumable
         float eaten = Mathf.Min(currentNutrition, requestAmount);
         currentNutrition -= eaten;
 
-        // ´Ù ¸ÔÈ÷¸é ÆÄ±«
+        // ë‹¤ ë¨¹ížˆë©´ íŒŒê´´
         if (currentNutrition <= 0)
         {
             Destroy(gameObject);
         }
 
-        return eaten; // Æ÷½ÄÀÚ¿¡°Ô ½ÇÁ¦·Î ÁØ ¿µ¾çºÐ ¹ÝÈ¯
+        return eaten; // í¬ì‹ìžì—ê²Œ ì‹¤ì œë¡œ ì¤€ ì˜ì–‘ë¶„ ë°˜í™˜
     }
 }
