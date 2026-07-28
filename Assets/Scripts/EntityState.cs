@@ -1,24 +1,23 @@
-using System.Xml;
 using UnityEngine;
-using UnityEngine.InputSystem.EnhancedTouch;
-using static UnityEngine.EventSystems.EventTrigger;
-
 
 public class IdleState : IState
 {
     // TODO: refactor 필요
-    public const float TRIGGER_HUNGER = 60f;
-    public const float TRIGGER_ENERGY = 10f;
-    
     private bool isWandering = false;
-    private float wanderRadius; // 배회 반경
+    private float wanderRadius;
+    private float hungerTrigger;
+    private float energyTrigger;
+
     public void Enter(EntityController entity)
     {
         Debug.Log("Enter: Idle State");
         wanderRadius = entity.wanderRadius;
+        hungerTrigger = entity.species.hungerTrigger;
+        energyTrigger = entity.species.energyTrigger;
         isWandering = false;
         entity.PlayAnimation("Idle");
     }
+
     // 프레임 단위: 도착했는지만 가볍게 확인
     public void ExecuteFrame(EntityController entity)
     {
@@ -36,12 +35,12 @@ public class IdleState : IState
     public void ExecuteTick(EntityController entity)
     {
         // 상태 전환 검사
-        if (entity.energy < TRIGGER_ENERGY)
+        if (entity.energy < energyTrigger)
         {
             entity.ChangeState(new SleepState());
             return;
         }
-        else if (entity.hunger < TRIGGER_HUNGER)
+        else if (entity.hunger < hungerTrigger)
         {
             entity.ChangeState(new HungerState());
             return;
@@ -59,13 +58,9 @@ public class IdleState : IState
                 isWandering = true;
                 entity.PlayAnimation("Walk"); // 걷기 애니메이션 재생
             }
-
-        }
-        else 
-        { 
-        
         }
     }
+
     public void Exit(EntityController entity)
     {
         isWandering = false;
@@ -84,7 +79,7 @@ public class HungerState : IState
         Debug.Log("Enter: Hunger State");
         eatSpeed = entity.eatSpeed;
 
-        // [수정됨] 진입할 때 모든 상태를 깨끗하게 초기화
+        // 진입할 때 이전 상태를 초기화
         entity.isEating = false;
         isWandering = false;
         targetFood = null;
@@ -94,7 +89,7 @@ public class HungerState : IState
 
     private void SearchOrWander(EntityController entity)
     {
-        // [핵심 해결] 먹이를 찾기 전에 먹는 행위를 무조건 강제 종료!
+        // 먹이를 찾기 전에 먹는 행위를 무조건 강제 종료!
         entity.isEating = false;
 
         targetFood = entity.LookForFood();
@@ -118,7 +113,7 @@ public class HungerState : IState
 
     public void ExecuteFrame(EntityController entity)
     {
-        // 1. 타겟 먹이가 존재하고, 아직 유니티 씬에서 파괴되지 않았을 때만!
+        // 1. 타겟 먹이가 존재하고, 씬에서 파괴되지 않았는지 체크
         if (targetFood != null && ((Component)targetFood) != null)
         {
             if (!entity.isEating)
@@ -137,7 +132,7 @@ public class HungerState : IState
                 float actuallyEaten = targetFood.ConsumeNutrition(requestAmount);
                 entity.RestoreHunger(actuallyEaten);
 
-                // [핵심 해결] 밥을 다 먹어치웠을 때 (요청량보다 적게 먹어짐)
+                // 요청보다 적으면 (다 먹었거나 남이 먼저 먹었거나)
                 if (actuallyEaten < requestAmount)
                 {
                     targetFood = null; // 파괴된 오브젝트의 좀비 참조를 완벽히 끊어버림!
@@ -162,8 +157,8 @@ public class HungerState : IState
 
     public void ExecuteTick(EntityController entity)
     {
-        // 배가 가득 차면 비로소 Hunger 상태를 탈출
-        if (entity.hunger >= 100f)
+        // 배가 가득 차면 Hunger 상태를 탈출
+        if (entity.hunger >= entity.species.maxHunger)
         {
             entity.ChangeState(new IdleState());
             return;
@@ -203,7 +198,7 @@ public class HungerState : IState
 
 public class SleepState : IState
 {
-    private float sleepRestoreSpeed = 15f;
+    private float sleepRestoreSpeed;
     public void Enter(EntityController entity)
     {
         Debug.Log("Enter: Sleep State");
@@ -227,7 +222,7 @@ public class SleepState : IState
     public void ExecuteTick(EntityController entity)
     {
         // 충분히 쉬었으면 기상!
-        if (entity.energy >= 100f)
+        if (entity.energy >= entity.species.maxEnergy)
         {
             entity.ChangeState(new IdleState());
         }

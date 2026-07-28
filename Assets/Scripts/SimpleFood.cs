@@ -24,6 +24,6 @@ public class SimpleFood : MonoBehaviour, IConsumable
             Destroy(gameObject);
         }
 
-        return eaten; // 포식자에게 실제로 준 영양분 반환
+        return eaten; // 실제로 소비된 영양분 반환
     }
 }
