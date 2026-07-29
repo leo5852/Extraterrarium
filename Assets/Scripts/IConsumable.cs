@@ -4,4 +4,6 @@ public interface IConsumable
 {
     float CurrentNutrition { get; }
     float ConsumeNutrition(float requestAmount);
+    Collider GetCollider();
+
 }

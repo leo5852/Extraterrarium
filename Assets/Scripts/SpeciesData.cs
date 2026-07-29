@@ -22,6 +22,7 @@ public class SpeciesData : ScriptableObject
 
     [Header("Movement & Senses")]
     public float wanderRadius = 5f;
+    public float wanderChance = 0.5f;
     public float searchRadius = 10f;
 
     [Header("Eating & Resting")]

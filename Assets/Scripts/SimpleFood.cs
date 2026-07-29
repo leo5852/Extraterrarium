@@ -7,10 +7,18 @@ public class SimpleFood : MonoBehaviour, IConsumable
     [SerializeField]
     private float currentNutrition;
     public float CurrentNutrition => currentNutrition;
+    
+    private Collider col;
 
     private void Awake()
     {
         currentNutrition = maxNutrition;
+        col = GetComponent<Collider>();
+    }
+
+    public Collider GetCollider()
+    {
+        return col;
     }
 
     public float ConsumeNutrition(float requestAmount)

@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -11,6 +12,7 @@ public class EntityController : MonoBehaviour
     public float energy;
     public float eatSpeed;
     public float wanderRadius; // 배회 반경
+    public float wanderChance;
     public float sleepRestoreSpeed; // 수면 중 에너지 회복 속도
     public bool isEating = false;
     public bool isSleeping = false;
@@ -22,6 +24,11 @@ public class EntityController : MonoBehaviour
     public NavMeshAgent agent;
     public Animator animator;
     public AudioSource audioSource;
+
+    [Header("Debug")]
+    public bool showDebugGizmos = true;
+    private Vector3 currentTarget;
+    private bool hasTarget;
 
     [SerializeField]
     private IState currentState;
@@ -42,6 +49,7 @@ public class EntityController : MonoBehaviour
             energy = species.maxEnergy;
             eatSpeed = species.eatSpeed;
             wanderRadius = species.wanderRadius;
+            wanderChance = species.wanderChance;
             sleepRestoreSpeed = species.sleepRestoreSpeed;
             searchRadius = species.searchRadius;
         }
@@ -97,11 +105,6 @@ public class EntityController : MonoBehaviour
         currentState.Enter(this);
     }
 
-    //==== Action Logics ====
-    public void MoveTo(Vector3 destination)
-    {
-        agent.SetDestination(destination);
-    }
 
     public void RestoreEnergy(float amount) { energy = Mathf.Min(energy + amount, species.maxEnergy); }
     public void RestoreHunger(float amount) { hunger = Mathf.Min(hunger + amount, species.maxHunger); }
@@ -150,13 +153,13 @@ public class EntityController : MonoBehaviour
 
     public Vector3 GetRandomNavMeshPoint(float radius)
     {
-        // 1. 내 위치를 기준으로 반경 내 무작위 방향 벡터 생성
-        Vector3 randomDirection = Random.insideUnitSphere * radius;
-        randomDirection += transform.position;
+        // 1. 방향만 무작위로 선택하고, y축은 반영하지 않음
+        Vector2 randomCircle = Random.insideUnitCircle.normalized * radius;
+        Vector3 randomDirection = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
 
         NavMeshHit hit;
         // 2. 그 지점 근처의 실제 NavMesh 위 점을 탐색 (걸을 수 있는 영역인지 확인)
-        if (NavMesh.SamplePosition(randomDirection, out hit, radius, NavMesh.AllAreas))
+        if (NavMesh.SamplePosition(randomDirection, out hit, 2f, NavMesh.AllAreas))
         {
             return hit.position;
         }
@@ -164,5 +167,52 @@ public class EntityController : MonoBehaviour
         // 유효한 점을 못 찾으면 현재 위치 반환 (제자리 유지)
         return transform.position;
     }
+
+    public bool TryGetWanderDestination(float radius, out Vector3 destination, float minDistance = 0.5f)
+    {
+        destination = GetRandomNavMeshPoint(radius);
+        return Vector3.Distance(destination, transform.position) >= minDistance;
+    }
+
+    //============== Action Logics ================
+    public void MoveTo(Vector3 destination)
+    {
+        agent.SetDestination(destination);
+        currentTarget = destination;
+        hasTarget = true;
+    }
+
+    public void SetStoppingDistance(float distance)
+    {
+        agent.stoppingDistance = distance;
+    }
+
+    // 콜라이더가 있는 타겟을 향할 때 중심 말고 표면 근처 접근 지점을 반환
+    public Vector3 GetApproachPosition(Collider targetCollider, float buffer = 0.3f)
+    {
+        Vector3 closestPoint = targetCollider.ClosestPoint(transform.position);
+        Vector3 direction = (transform.position - closestPoint).normalized;
+        if (direction.sqrMagnitude < 0.01f) direction = transform.forward; // 완전히 겹친 경우 방어
+
+        return closestPoint + direction * buffer;
+    }
+
+    //==================Debugging Logics==================
+#if UNITY_EDITOR
+    private void OnDrawGizmos()
+    {
+        if (!showDebugGizmos || !hasTarget) return;
+
+        // 목표 지점 X 표시 (실선, Gizmos)
+        Gizmos.color = Color.red;
+        float size = 0.5f;
+        Gizmos.DrawLine(currentTarget + new Vector3(-size, 0.05f, -size), currentTarget + new Vector3(size, 0.1f, size));
+        Gizmos.DrawLine(currentTarget + new Vector3(-size, 0.05f, size), currentTarget + new Vector3(size, 0.1f, -size));
+
+        // 목표 지점까지 점선 (Handles)
+        UnityEditor.Handles.color = Color.red;
+        UnityEditor.Handles.DrawDottedLine(transform.position, currentTarget, 4f); // 4f은 점 간격
+    }
+#endif
 }
 
