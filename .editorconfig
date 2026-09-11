@@ -1,6 +1,9 @@
 # 상위 디렉터리에서 .editorconfig 설정을 상속하려면 아래 행을 제거하세요.
 root = true
 
+[*]
+charset = utf-8
+
 # C# 파일
 [*.cs]
 
@@ -134,7 +137,6 @@ csharp_prefer_simple_default_expression = true
 csharp_style_deconstructed_variable_declaration = true
 csharp_style_implicit_object_creation_when_type_is_apparent = true
 csharp_style_inlined_variable_declaration = true
-csharp_style_prefer_implicitly_typed_lambda_expression = true
 csharp_style_prefer_index_operator = true
 csharp_style_prefer_local_over_anonymous_function = true
 csharp_style_prefer_null_check_over_type_check = true

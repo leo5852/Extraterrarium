@@ -68,7 +68,7 @@ public class EntityController : MonoBehaviour
 
     private void OnDisable()
     {
-        // 파괴/비활성화될 때 반드시 구독 해제
+        // 파괴/비활성화될 때 반드시 tick 구독 해제
         if (TickManager.Instance != null)
         {
             TickManager.Instance.OnTick -= ApplyTick;
